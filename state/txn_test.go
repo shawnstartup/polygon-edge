@@ -13,6 +13,10 @@ type mockSnapshot struct {
 	state map[types.Address]*PreState
 }
 
+func (m *mockSnapshot) Hash() types.Hash {
+	return types.ZeroHash
+}
+
 func (m *mockSnapshot) GetStorage(addr types.Address, root types.Hash, key types.Hash) types.Hash {
 	raw, ok := m.state[addr]
 	if !ok {

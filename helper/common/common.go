@@ -43,6 +43,12 @@ func RetryForever(ctx context.Context, interval time.Duration, fn func(context.C
 	})
 }
 
+// IsContextDone returns true if the error is due to the context being cancelled
+// or expired. This is useful for determining if a function should retry.
+func IsContextDone(err error) bool {
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
+}
+
 // Min returns the strictly lower number
 func Min(a, b uint64) uint64 {
 	if a < b {

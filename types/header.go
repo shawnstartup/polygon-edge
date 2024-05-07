@@ -31,6 +31,11 @@ type Header struct {
 	BaseFee uint64 `json:"baseFeePerGas"`
 }
 
+func (h *Header) String() string {
+	return fmt.Sprintf("[Header#%d] ParentHash: %s, Hash: %s, BaseFee: %d, Miner: %s, StateRoot: %s, TxRoot: %s, ReceiptsRoot: %s, LogsBloom: %s, Difficulty: %d, GasLimit: %d, GasUsed: %d, Timestamp: %d, ExtraData: %x, MixHash: %s, Nonce: %s, Sha3Uncles: %s",
+		h.Number, h.ParentHash, h.Hash, h.BaseFee, BytesToAddress(h.Miner), h.StateRoot, h.TxRoot, h.ReceiptsRoot, h.LogsBloom, h.Difficulty, h.GasLimit, h.GasUsed, h.Timestamp, h.ExtraData, h.MixHash, h.Nonce, h.Sha3Uncles)
+}
+
 func (h *Header) Equal(hh *Header) bool {
 	return h.Hash == hh.Hash
 }

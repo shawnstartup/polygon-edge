@@ -255,6 +255,8 @@ func (v *validatorsSnapshotCache) cleanup() error {
 // getLastCachedSnapshot gets the latest snapshot cached
 // If it doesn't have snapshot cached for desired epoch, it will return the latest one it has
 func (v *validatorsSnapshotCache) getLastCachedSnapshot(currentEpoch uint64) (*validatorSnapshot, error) {
+	epochToQuery := currentEpoch
+
 	cachedSnapshot := v.snapshots[currentEpoch]
 	if cachedSnapshot != nil {
 		return cachedSnapshot, nil
@@ -274,7 +276,7 @@ func (v *validatorsSnapshotCache) getLastCachedSnapshot(currentEpoch uint64) (*v
 		}
 	}
 
-	dbSnapshot, err := v.state.EpochStore.getLastSnapshot()
+	dbSnapshot, err := v.state.EpochStore.getNearestOrEpochSnapshot(epochToQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -287,6 +289,10 @@ func (v *validatorsSnapshotCache) getLastCachedSnapshot(currentEpoch uint64) (*v
 			// save it in cache as well, since it doesn't exist
 			v.snapshots[dbSnapshot.Epoch] = dbSnapshot.copy()
 		}
+	}
+
+	if cachedSnapshot != nil && cachedSnapshot.Epoch > epochToQuery {
+		return nil, nil
 	}
 
 	return cachedSnapshot, nil

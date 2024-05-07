@@ -14,7 +14,7 @@ import (
 
 const minBlockMaxBacklog = 96
 
-type eventSubscription interface {
+type EventSubscription interface {
 	AddLog(log *ethgo.Log)
 }
 
@@ -23,19 +23,21 @@ type EventTracker struct {
 	rpcEndpoint           string
 	contractAddr          ethgo.Address
 	startBlock            uint64
-	subscriber            eventSubscription
+	subscriber            EventSubscription
 	logger                hcf.Logger
 	numBlockConfirmations uint64 // minimal number of child blocks required for the parent block to be considered final
+	pollInterval          common.Duration
 }
 
 func NewEventTracker(
 	dbPath string,
 	rpcEndpoint string,
 	contractAddr ethgo.Address,
-	subscriber eventSubscription,
+	subscriber EventSubscription,
 	numBlockConfirmations uint64,
 	startBlock uint64,
 	logger hcf.Logger,
+	pollInterval common.Duration,
 ) *EventTracker {
 	return &EventTracker{
 		dbPath:                dbPath,
@@ -45,6 +47,7 @@ func NewEventTracker(
 		numBlockConfirmations: numBlockConfirmations,
 		startBlock:            startBlock,
 		logger:                logger.Named("event_tracker"),
+		pollInterval:          pollInterval,
 	}
 }
 
@@ -53,7 +56,8 @@ func (e *EventTracker) Start(ctx context.Context) error {
 		"contract", e.contractAddr,
 		"JSON RPC address", e.rpcEndpoint,
 		"num block confirmations", e.numBlockConfirmations,
-		"start block", e.startBlock)
+		"start block", e.startBlock,
+		"poll interval", e.pollInterval)
 
 	provider, err := jsonrpc.NewClient(e.rpcEndpoint)
 	if err != nil {
@@ -70,7 +74,13 @@ func (e *EventTracker) Start(ctx context.Context) error {
 		blockMaxBacklog = minBlockMaxBacklog
 	}
 
-	blockTracker := blocktracker.NewBlockTracker(provider.Eth(), blocktracker.WithBlockMaxBacklog(blockMaxBacklog))
+	jsonBlockTracker := blocktracker.NewJSONBlockTracker(provider.Eth())
+	jsonBlockTracker.PollInterval = e.pollInterval.Duration
+	blockTracker := blocktracker.NewBlockTracker(
+		provider.Eth(),
+		blocktracker.WithBlockMaxBacklog(blockMaxBacklog),
+		blocktracker.WithTracker(jsonBlockTracker),
+	)
 
 	go func() {
 		<-ctx.Done()

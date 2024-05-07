@@ -146,6 +146,7 @@ func (b *BlockBuilder) WriteTx(tx *types.Transaction) error {
 		return txpool.ErrBlockLimitExceeded
 	}
 
+	b.params.Logger.Debug(fmt.Sprintf("[BlockBuilder.WriteTx] tx: %s", tx))
 	if err := b.state.Write(tx); err != nil {
 		return err
 	}

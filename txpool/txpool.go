@@ -138,7 +138,7 @@ type promoteRequest struct {
 type TxPool struct {
 	logger hclog.Logger
 	signer signer
-	forks  chain.ForksInTime
+	forks  *chain.Forks
 	store  store
 
 	// map of all accounts registered by the pool
@@ -191,7 +191,7 @@ type TxPool struct {
 // NewTxPool returns a new pool for processing incoming transactions.
 func NewTxPool(
 	logger hclog.Logger,
-	forks chain.ForksInTime,
+	forks *chain.Forks,
 	store store,
 	grpcServer *grpc.Server,
 	network *network.Server,
@@ -578,8 +578,15 @@ func (p *TxPool) validateTx(tx *types.Transaction) error {
 		tx.From = from
 	}
 
+	// Grab current block number
+	currentHeader := p.store.Header()
+	currentBlockNumber := currentHeader.Number
+
+	// Get forks state for the current block
+	forks := p.forks.At(currentBlockNumber)
+
 	// Check if transaction can deploy smart contract
-	if tx.IsContractCreation() && p.forks.EIP158 && len(tx.Input) > state.TxPoolMaxInitCodeSize {
+	if tx.IsContractCreation() && forks.EIP158 && len(tx.Input) > state.TxPoolMaxInitCodeSize {
 		metrics.IncrCounter([]string{txPoolMetrics, "contract_deploy_too_large_txs"}, 1)
 
 		return runtime.ErrMaxCodeSizeExceeded
@@ -587,7 +594,7 @@ func (p *TxPool) validateTx(tx *types.Transaction) error {
 
 	if tx.Type == types.DynamicFeeTx {
 		// Reject dynamic fee tx if london hardfork is not enabled
-		if !p.forks.London {
+		if !forks.London {
 			metrics.IncrCounter([]string{txPoolMetrics, "invalid_tx_type"}, 1)
 
 			return ErrInvalidTxType
@@ -634,7 +641,7 @@ func (p *TxPool) validateTx(tx *types.Transaction) error {
 	}
 
 	// Grab the state root for the latest block
-	stateRoot := p.store.Header().StateRoot
+	stateRoot := currentHeader.StateRoot
 
 	// Check nonce ordering
 	if p.store.GetNonce(stateRoot, tx.From) > tx.Nonce {
@@ -658,7 +665,7 @@ func (p *TxPool) validateTx(tx *types.Transaction) error {
 	}
 
 	// Make sure the transaction has more gas than the basic transaction fee
-	intrinsicGas, err := state.TransactionGasCost(tx, p.forks.Homestead, p.forks.Istanbul)
+	intrinsicGas, err := state.TransactionGasCost(tx, forks.Homestead, forks.Istanbul)
 	if err != nil {
 		metrics.IncrCounter([]string{txPoolMetrics, "invalid_intrinsic_gas_tx"}, 1)
 
@@ -672,7 +679,7 @@ func (p *TxPool) validateTx(tx *types.Transaction) error {
 	}
 
 	// Grab the block gas limit for the latest block
-	latestBlockGasLimit := p.store.Header().GasLimit
+	latestBlockGasLimit := currentHeader.GasLimit
 
 	if tx.Gas > latestBlockGasLimit {
 		metrics.IncrCounter([]string{txPoolMetrics, "block_gas_limit_exceeded_tx"}, 1)

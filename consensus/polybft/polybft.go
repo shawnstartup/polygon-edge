@@ -425,6 +425,7 @@ func (p *Polybft) Initialize() error {
 	p.blockchain = &blockchainWrapper{
 		blockchain: p.config.Blockchain,
 		executor:   p.config.Executor,
+		logger:     p.logger.Named("blockchain_wrapper"),
 	}
 
 	// create bridge and consensus topics
@@ -491,7 +492,7 @@ func (p *Polybft) Start() error {
 	// sync concurrently, retrying indefinitely
 	go common.RetryForever(context.Background(), time.Second, func(context.Context) error {
 		blockHandler := func(b *types.FullBlock) bool {
-			p.runtime.OnBlockInserted(b)
+			p.runtime.OnBlockInserted(b, "syncer")
 
 			return false
 		}
@@ -553,7 +554,7 @@ func (p *Polybft) startConsensusProtocol() {
 		return
 	}
 
-	p.logger.Debug("peers connected")
+	p.logger.Debug("starting polybft protocol...")
 
 	newBlockSub := p.blockchain.SubscribeEvents()
 	defer newBlockSub.Close()

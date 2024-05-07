@@ -2,6 +2,7 @@ package chain
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/0xPolygon/polygon-edge/helper/common"
@@ -165,6 +166,11 @@ type ForksInTime struct {
 	EIP150,
 	EIP158,
 	EIP155 bool
+}
+
+func (f ForksInTime) String() string {
+	return fmt.Sprintf("Homestead: %t, Byzantium: %t, Constantinople: %t, Petersburg: %t, Istanbul: %t, London: %t, EIP150: %t, EIP158: %t, EIP155: %t",
+		f.Homestead, f.Byzantium, f.Constantinople, f.Petersburg, f.Istanbul, f.London, f.EIP150, f.EIP158, f.EIP155)
 }
 
 // AllForksEnabled should contain all supported forks by current edge version

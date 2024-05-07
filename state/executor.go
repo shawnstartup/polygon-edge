@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math"
@@ -134,12 +135,21 @@ func (e *Executor) ProcessBlock(
 	block *types.Block,
 	blockCreator types.Address,
 ) (*Transition, error) {
+	e.logger.Debug("[Executor.ProcessBlock]", "block number", block.Number(), "block hash", block.Hash(),
+		"parent state root", parentRoot, "block state root", block.Header.StateRoot)
+	defer e.logger.Debug("[Executor.ProcessBlock] finished", "block number", block.Number(), "block hash", block.Hash(),
+		"parent state root", parentRoot, "block state root", block.Header.StateRoot)
+
 	txn, err := e.BeginTxn(parentRoot, block.Header, blockCreator)
 	if err != nil {
 		return nil, err
 	}
 
+	var buf bytes.Buffer
 	for _, t := range block.Transactions {
+		if e.logger.IsDebug() {
+			buf.WriteString(fmt.Sprintf("%s\n", t.String()))
+		}
 		if t.Gas > block.Header.GasLimit {
 			continue
 		}
@@ -147,6 +157,10 @@ func (e *Executor) ProcessBlock(
 		if err = txn.Write(t); err != nil {
 			return nil, err
 		}
+	}
+
+	if e.logger.IsDebug() {
+		e.logger.Debug(fmt.Sprintf("[Executor.ProcessBlock] Block txs %s", buf.String()))
 	}
 
 	return txn, nil
@@ -188,6 +202,10 @@ func (e *Executor) BeginTxn(
 	}
 
 	newTxn := NewTxn(auxSnap2)
+	e.logger.Debug("BeginTxn",
+		"header num", header.Number,
+		"header hash", header.Hash,
+		"snapshot hash", newTxn.snapshot.Hash())
 
 	txCtx := runtime.TxContext{
 		Coinbase:     coinbaseReceiver,
@@ -339,11 +357,17 @@ func (t *Transition) Write(txn *types.Transaction) error {
 		// Decrypt the from address
 		signer := crypto.NewSigner(t.config, uint64(t.ctx.ChainID))
 
+		t.logger.Debug("[Transition.Write]",
+			"chain id", t.ctx.ChainID,
+			"forks config", t.config)
+
 		txn.From, err = signer.Sender(txn)
 		if err != nil {
 			return NewTransitionApplicationError(err, false)
 		}
 	}
+
+	t.logger.Debug("[Transition.Write]", "tx sender", txn.From, "tx", txn)
 
 	// Make a local copy and apply the transaction
 	msg := txn.Copy()

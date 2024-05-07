@@ -68,6 +68,15 @@ type Transaction struct {
 	size atomic.Pointer[uint64]
 }
 
+func (tx *Transaction) String() string {
+	recipient := ""
+	if tx.To != nil {
+		recipient = tx.To.String()
+	}
+	return fmt.Sprintf("[%s] Nonce: %d, GasPrice: %d, GasTipCap: %d, GasFeeCap: %d, Gas: %d, To: %s, Value: %d, Input: %x, V: %d, R: %d, S: %s, Hash: %s, From: %s",
+		tx.Type, tx.Nonce, tx.GasPrice, tx.GasTipCap, tx.GasFeeCap, tx.Gas, recipient, tx.Value, tx.Input, tx.V, tx.R, tx.S, tx.Hash, tx.From)
+}
+
 // IsContractCreation checks if tx is contract creation
 func (t *Transaction) IsContractCreation() bool {
 	return t.To == nil

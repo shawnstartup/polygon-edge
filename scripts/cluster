@@ -16,10 +16,10 @@ if [[ "$1" == "polybft" ]] && ! command -v nc >/dev/null 2>&1; then
 fi
 
 # Stop script if any of the dependencies have failed
-if [[ "$dp_error_flag" -eq 1]]; then
-  echo "Missing dependencies. Please install them and run the script again."
-  exit 1
-fi	
+# if [[ "$dp_error_flag" -eq 1]]; then
+#   echo "Missing dependencies. Please install them and run the script again."
+#   exit 1
+# fi	
 
 function initIbftConsensus() {
   echo "Running with ibft consensus"
@@ -134,7 +134,7 @@ function startServerFromBinary() {
     echo "Writing validators logs to the files..."
     ./polygon-edge server --data-dir ./test-chain-1 --chain genesis.json \
       --grpc-address :10000 --libp2p :30301 --jsonrpc :10002 \
-      --num-block-confirmations 2 --seal --log-level DEBUG 2>&1 | tee ./validator-1.log &
+      --num-block-confirmations 2 --seal --relayer --log-level DEBUG 2>&1 | tee ./validator-1.log &
     ./polygon-edge server --data-dir ./test-chain-2 --chain genesis.json \
       --grpc-address :20000 --libp2p :30302 --jsonrpc :20002 \
       --num-block-confirmations 2 --seal --log-level DEBUG 2>&1 | tee ./validator-2.log &
@@ -148,7 +148,7 @@ function startServerFromBinary() {
   else
     ./polygon-edge server --data-dir ./test-chain-1 --chain genesis.json \
       --grpc-address :10000 --libp2p :30301 --jsonrpc :10002 \
-      --num-block-confirmations 2 --seal --log-level DEBUG &
+      --num-block-confirmations 2 --seal --relayer --log-level DEBUG &
     ./polygon-edge server --data-dir ./test-chain-2 --chain genesis.json \
       --grpc-address :20000 --libp2p :30302 --jsonrpc :20002 \
       --num-block-confirmations 2 --seal --log-level DEBUG &
@@ -186,7 +186,7 @@ rm -rf test-chain-*
 rm -f genesis.json
 
 # Build binary
-go build -o polygon-edge .
+make build
 
 # If --docker flag is set run docker environment otherwise run from binary
 case "$2" in

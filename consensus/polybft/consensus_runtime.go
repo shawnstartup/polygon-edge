@@ -154,6 +154,11 @@ func newConsensusRuntime(log hcf.Logger, config *runtimeConfig) (*consensusRunti
 		return nil, fmt.Errorf("consensus runtime creation - restart epoch failed: %w", err)
 	}
 
+	runtime.logger.Debug("consensus runtime initialized",
+		"block hash", runtime.lastBuiltBlock.Hash,
+		"block number", runtime.lastBuiltBlock.Number,
+		"state root", runtime.lastBuiltBlock.StateRoot)
+
 	return runtime, nil
 }
 
@@ -171,14 +176,15 @@ func (c *consensusRuntime) initStateSyncManager(logger hcf.Logger) error {
 			logger.Named("state-sync-manager"),
 			c.config.State,
 			&stateSyncConfig{
-				key:                   c.config.Key,
-				stateSenderAddr:       stateSenderAddr,
-				stateSenderStartBlock: c.config.PolyBFTConfig.Bridge.EventTrackerStartBlocks[stateSenderAddr],
-				jsonrpcAddr:           c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint,
-				dataDir:               c.config.DataDir,
-				topic:                 c.config.bridgeTopic,
-				maxCommitmentSize:     maxCommitmentSize,
-				numBlockConfirmations: c.config.numBlockConfirmations,
+				key:                      c.config.Key,
+				stateSenderAddr:          stateSenderAddr,
+				stateSenderStartBlock:    c.config.PolyBFTConfig.Bridge.EventTrackerStartBlocks[stateSenderAddr],
+				jsonrpcAddr:              c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint,
+				dataDir:                  c.config.DataDir,
+				topic:                    c.config.bridgeTopic,
+				maxCommitmentSize:        maxCommitmentSize,
+				numBlockConfirmations:    c.config.numBlockConfirmations,
+				blockTrackerPollInterval: c.config.PolyBFTConfig.BlockTrackerPollInterval,
 			},
 		)
 
@@ -195,7 +201,9 @@ func (c *consensusRuntime) initStateSyncManager(logger hcf.Logger) error {
 func (c *consensusRuntime) initCheckpointManager(logger hcf.Logger) error {
 	if c.IsBridgeEnabled() {
 		// enable checkpoint manager
-		txRelayer, err := txrelayer.NewTxRelayer(txrelayer.WithIPAddress(c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint))
+		txRelayer, err := txrelayer.NewTxRelayer(
+			txrelayer.WithIPAddress(c.config.PolyBFTConfig.Bridge.JSONRPCEndpoint),
+			txrelayer.WithWriter(logger.StandardWriter(&hcf.StandardLoggerOptions{})))
 		if err != nil {
 			return err
 		}
@@ -263,13 +271,26 @@ func (c *consensusRuntime) IsBridgeEnabled() bool {
 }
 
 // OnBlockInserted is called whenever fsm or syncer inserts new block
-func (c *consensusRuntime) OnBlockInserted(fullBlock *types.FullBlock) {
+func (c *consensusRuntime) OnBlockInserted(fullBlock *types.FullBlock, source string) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	c.logger.Debug(
+		"OnBlockInserted",
+		"source", source,
+		"header number", fullBlock.Block.Number(),
+		"header hash", fullBlock.Block.Hash(),
+		"state root", fullBlock.Block.Header.StateRoot)
+	defer c.logger.Debug(
+		"OnBlockInserted finished",
+		"source", source,
+		"header number", fullBlock.Block.Number(),
+		"header hash", fullBlock.Block.Hash(),
+		"state root", fullBlock.Block.Header.StateRoot)
+
 	if c.lastBuiltBlock != nil && c.lastBuiltBlock.Number >= fullBlock.Block.Number() {
 		c.logger.Debug("on block inserted already handled",
-			"current", c.lastBuiltBlock.Number, "block", fullBlock.Block.Number())
+			"current", c.lastBuiltBlock.Number, "block", fullBlock.Block.Number(), "source", source)
 
 		return
 	}
@@ -752,7 +773,7 @@ func (c *consensusRuntime) InsertProposal(proposal *proto.Proposal, committedSea
 		return
 	}
 
-	c.OnBlockInserted(fullBlock)
+	c.OnBlockInserted(fullBlock, "consensus")
 }
 
 // ID return ID (address actually) of the current node

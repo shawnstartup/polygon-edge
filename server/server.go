@@ -18,6 +18,7 @@ import (
 	consensusPolyBFT "github.com/0xPolygon/polygon-edge/consensus/polybft"
 	"github.com/0xPolygon/polygon-edge/forkmanager"
 	"github.com/0xPolygon/polygon-edge/gasprice"
+	"github.com/0xPolygon/polygon-edge/versioning"
 
 	"github.com/0xPolygon/polygon-edge/archive"
 	"github.com/0xPolygon/polygon-edge/blockchain"
@@ -153,6 +154,7 @@ func NewServer(config *Config) (*Server, error) {
 	}
 
 	m.logger.Info("Data dir", "path", config.DataDir)
+	m.logger.Info("Version metadata", "version", versioning.Version, "commit", versioning.Commit, "branch", versioning.Branch, "build time", versioning.BuildTime)
 
 	var dirPaths = []string{
 		"blockchain",
@@ -355,7 +357,7 @@ func NewServer(config *Config) (*Server, error) {
 		// start transaction pool
 		m.txpool, err = txpool.NewTxPool(
 			logger,
-			m.chain.Params.Forks.At(0),
+			m.chain.Params.Forks,
 			hub,
 			m.grpcServer,
 			m.network,

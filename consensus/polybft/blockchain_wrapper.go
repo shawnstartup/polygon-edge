@@ -1,6 +1,7 @@
 package polybft
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"math/big"
@@ -67,6 +68,7 @@ type blockchainBackend interface {
 var _ blockchainBackend = &blockchainWrapper{}
 
 type blockchainWrapper struct {
+	logger     hclog.Logger
 	executor   *state.Executor
 	blockchain *blockchain.Blockchain
 }
@@ -86,16 +88,40 @@ func (p *blockchainWrapper) ProcessBlock(parent *types.Header, block *types.Bloc
 	header := block.Header.Copy()
 	start := time.Now().UTC()
 
+	p.logger.Debug("[BlockchainWrapper.ProcessBlock]",
+		"block number", block.Number(),
+		"block hash", block.Hash(),
+		"parent hash", parent.Hash,
+		"parent state root", parent.StateRoot,
+		"block state root", block.Header.StateRoot,
+		"miner", types.BytesToAddress(header.Miner))
+	defer p.logger.Debug("[BlockchainWrapper.ProcessBlock] finished",
+		"block number", block.Number(),
+		"block hash", block.Hash(),
+		"parent hash", parent.Hash,
+		"parent state root", parent.StateRoot,
+		"block state root", block.Header.StateRoot,
+		"miner", types.BytesToAddress(header.Miner))
+
 	transition, err := p.executor.BeginTxn(parent.StateRoot, header, types.BytesToAddress(header.Miner))
 	if err != nil {
 		return nil, err
 	}
 
+	var buf bytes.Buffer
 	// apply transactions from block
 	for _, tx := range block.Transactions {
+		if p.logger.IsDebug() {
+			buf.WriteString(fmt.Sprintf("%s\n", tx))
+		}
+
 		if err = transition.Write(tx); err != nil {
 			return nil, fmt.Errorf("process block tx error, tx = %v, err = %w", tx.Hash, err)
 		}
+	}
+
+	if p.logger.IsDebug() {
+		p.logger.Debug(fmt.Sprintf("Block txs %s", buf.String()))
 	}
 
 	_, root, err := transition.Commit()
@@ -105,8 +131,8 @@ func (p *blockchainWrapper) ProcessBlock(parent *types.Header, block *types.Bloc
 
 	updateBlockExecutionMetric(start)
 
-	if root != block.Header.StateRoot {
-		return nil, fmt.Errorf("incorrect state root: (%s, %s)", root, block.Header.StateRoot)
+	if root != header.StateRoot {
+		return nil, fmt.Errorf("incorrect state root: (%s, %s)", root, header.StateRoot)
 	}
 
 	// build the block

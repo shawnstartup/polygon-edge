@@ -235,6 +235,13 @@ func setFlags(cmd *cobra.Command) {
 			defaultBlockTimeDrift,
 			"configuration for block time drift value (in seconds)",
 		)
+
+		cmd.Flags().DurationVar(
+			&params.blockTrackerPollInterval,
+			blockTrackerPollIntervalFlag,
+			defaultBlockTrackerPollInterval,
+			"interval (number of seconds) at which block tracker polls for latest block at rootchain",
+		)
 	}
 
 	// Access Control Lists

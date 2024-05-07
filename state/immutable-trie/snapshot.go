@@ -2,6 +2,7 @@ package itrie
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/0xPolygon/polygon-edge/crypto"
 	"github.com/0xPolygon/polygon-edge/state"
@@ -15,6 +16,10 @@ type Snapshot struct {
 }
 
 var emptyStateHash = types.StringToHash("0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")
+
+func (s *Snapshot) Hash() types.Hash {
+	return s.trie.Hash()
+}
 
 func (s *Snapshot) GetStorage(addr types.Address, root types.Hash, rawkey types.Hash) types.Hash {
 	var (
@@ -133,7 +138,10 @@ func (s *Snapshot) Commit(objs []*state.Object) (state.Snapshot, []byte) {
 		}
 	}
 
-	root, _ := tt.Hash()
+	root, err := tt.Hash()
+	if err != nil {
+		panic(fmt.Errorf("failed to calculate hash %w", err))
+	}
 
 	nTrie := tt.Commit()
 

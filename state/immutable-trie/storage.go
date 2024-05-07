@@ -50,7 +50,10 @@ func (b *KVBatch) Put(k, v []byte) {
 }
 
 func (b *KVBatch) Write() {
-	_ = b.db.Write(b.batch, nil)
+	err := b.db.Write(b.batch, nil)
+	if err != nil {
+		panic(fmt.Errorf("failed to write batch %w", err))
+	}
 }
 
 func (kv *KVStorage) SetCode(hash types.Hash, code []byte) {

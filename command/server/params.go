@@ -38,6 +38,8 @@ const (
 	devFlag                      = "dev"
 	corsOriginFlag               = "access-control-allow-origins"
 	logFileLocationFlag          = "log-to"
+
+	concurrentRequestsDebugFlag = "concurrent-requests-debug"
 )
 
 // Flags that are deprecated, but need to be preserved for
@@ -150,6 +152,7 @@ func (p *serverParams) generateConfig() *server.Config {
 			AccessControlAllowOrigin: p.corsAllowedOrigins,
 			BatchLengthLimit:         p.rawConfig.JSONRPCBatchRequestLimit,
 			BlockRangeLimit:          p.rawConfig.JSONRPCBlockRangeLimit,
+			ConcurrentRequestsDebug:  p.rawConfig.ConcurrentRequestsDebug,
 		},
 		GRPCAddr:   p.grpcAddress,
 		LibP2PAddr: p.libp2pAddress,

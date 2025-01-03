@@ -450,7 +450,7 @@ func TestTraceTransaction(t *testing.T) {
 		{
 			name:   "should trace the given transaction",
 			txHash: testTxHash1,
-			config: &TraceConfig{},
+			config: &TraceConfig{Tracer: callTracerName},
 			store: &debugEndpointMockStore{
 				readTxLookupFn: func(hash types.Hash) (types.Hash, bool) {
 					assert.Equal(t, testTxHash1, hash)

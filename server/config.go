@@ -41,6 +41,8 @@ type Config struct {
 	JSONLogFormat bool
 
 	LogFilePath string
+
+	NumBlockConfirmations uint64
 }
 
 // Telemetry holds the config details for metric services
@@ -54,4 +56,5 @@ type JSONRPC struct {
 	AccessControlAllowOrigin []string
 	BatchLengthLimit         uint64
 	BlockRangeLimit          uint64
+	ConcurrentRequestsDebug  uint64
 }

@@ -31,6 +31,8 @@ type Config struct {
 	JSONRPCBatchRequestLimit uint64     `json:"json_rpc_batch_request_limit" yaml:"json_rpc_batch_request_limit"`
 	JSONRPCBlockRangeLimit   uint64     `json:"json_rpc_block_range_limit" yaml:"json_rpc_block_range_limit"`
 	JSONLogFormat            bool       `json:"json_log_format" yaml:"json_log_format"`
+
+	ConcurrentRequestsDebug uint64 `json:"concurrent_requests_debug" yaml:"concurrent_requests_debug"`
 }
 
 // Telemetry holds the config details for metric services.
@@ -75,6 +77,9 @@ const (
 	// DefaultJSONRPCBlockRangeLimit maximum block range allowed for json_rpc
 	// requests with fromBlock/toBlock values (e.g. eth_getLogs)
 	DefaultJSONRPCBlockRangeLimit uint64 = 1000
+
+	// DefaultConcurrentRequestsDebug specifies max number of allowed concurrent requests for debug endpoints
+	DefaultConcurrentRequestsDebug uint64 = 32
 )
 
 // DefaultConfig returns the default server configuration
@@ -111,6 +116,7 @@ func DefaultConfig() *Config {
 		LogFilePath:              "",
 		JSONRPCBatchRequestLimit: DefaultJSONRPCBatchRequestLimit,
 		JSONRPCBlockRangeLimit:   DefaultJSONRPCBlockRangeLimit,
+		ConcurrentRequestsDebug:  DefaultConcurrentRequestsDebug,
 	}
 }
 

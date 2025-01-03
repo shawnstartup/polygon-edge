@@ -55,6 +55,8 @@ type dispatcherParams struct {
 	priceLimit              uint64
 	jsonRPCBatchLengthLimit uint64
 	blockRangeLimit         uint64
+
+	concurrentRequestsDebug uint64
 }
 
 func newDispatcher(
@@ -96,9 +98,7 @@ func (d *Dispatcher) registerEndpoints(store JSONRPCStore) {
 	d.endpoints.TxPool = &TxPool{
 		store,
 	}
-	d.endpoints.Debug = &Debug{
-		store,
-	}
+	d.endpoints.Debug = NewDebug(store, d.params.concurrentRequestsDebug)
 
 	d.registerService("eth", d.endpoints.Eth)
 	d.registerService("net", d.endpoints.Net)

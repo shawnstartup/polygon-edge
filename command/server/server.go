@@ -221,6 +221,13 @@ func setFlags(cmd *cobra.Command) {
 		"write all logs to the file at specified location instead of writing them to console",
 	)
 
+	cmd.Flags().Uint64Var(
+		&params.rawConfig.ConcurrentRequestsDebug,
+		concurrentRequestsDebugFlag,
+		defaultConfig.ConcurrentRequestsDebug,
+		"maximal number of concurrent requests for debug endpoints",
+	)
+
 	setLegacyFlags(cmd)
 
 	setDevFlags(cmd)
